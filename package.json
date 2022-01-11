@@ -1,0 +1,17 @@
+{
+  "name": "tooibasho",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "run": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "author": "Puellaquae",
+  "license": "ISC",
+  "dependencies": {
+    "archiver": "^5.3.0",
+    "axios": "^0.24.0"
+  }
+}
