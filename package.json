@@ -2,16 +2,28 @@
   "name": "tooibasho",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "run": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "run": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack",
+    "watch": "webpack --watch"
   },
   "type": "module",
   "author": "Puellaquae",
   "license": "ISC",
   "dependencies": {
-    "archiver": "^5.3.0",
-    "axios": "^0.24.0"
+    "axios": "^0.24.0",
+    "file-saver": "^2.0.5",
+    "jszip": "^3.7.1"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.176",
+    "@types/file-saver": "^2.0.5",
+    "copy-webpack-plugin": "^10.2.0",
+    "ts-loader": "^9.2.6",
+    "typescript": "^4.5.4",
+    "webpack": "^5.66.0",
+    "webpack-cli": "^4.9.1"
   }
 }
