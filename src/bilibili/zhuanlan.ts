@@ -17,30 +17,32 @@ class BilibiliZhuanlan implements Plugin {
         ];
     }
 
-    async detect(url: string): Promise<ArchiveItem[]> {
+    async *detect(url: string): AsyncGenerator<ArchiveItem, void, void> {
         const uid = url.match(FROM_SPACE)?.at(1);
         const rlid = url.match(FROM_READLIST)?.at(1);
         const cvid = url.match(FROM_READ)?.at(1);
         if (uid) {
-            return this.getArticleListFromUid(parseInt(uid));
+            yield* this.getArticleListFromUid(parseInt(uid));
         } else if (rlid) {
-            return this.getArticleListFromRlid(parseInt(rlid));
+            yield* this.getArticleListFromRlid(parseInt(rlid));
         } else if (cvid) {
-            return [await this.getArticleFromCvid(parseInt(cvid))];
+            yield* this.getArticleFromCvid(parseInt(cvid));
         }
-        return []
     }
 
     async archive(item: ArchiveItem, archiver: Archiver): Promise<{ entryfile: string }> {
         const MAX_TRY = 5;
-        let articleData = item.auxData! as ArticleData;
+        if (!item.auxData) {
+            throw new Error("No AuxData found in ArchiveItem");
+        }
+        const articleData = item.auxData as ArticleData;
         const paths = [...item.catalogPath.map(c => c.id.toString()), item.name];
         archiver.append(JSON.stringify(articleData), { name: "rawData.json", paths });
         archiver.append(article2html(articleData), { name: "article.html", paths });
         const bannerImageUrl = articleData.readInfo.banner_url;
         const originImageUrls = articleData.readInfo.origin_image_urls;
         const contentImageUrls = articleData.readInfo.content.match(/\/\/i.\.hdslb\.com\/bfs\/article\/[0-9a-f]{40}\..../g);
-        let imageUrls = [];
+        const imageUrls = [];
         if (bannerImageUrl) {
             imageUrls.push(bannerImageUrl);
         }
@@ -82,49 +84,51 @@ class BilibiliZhuanlan implements Plugin {
         }
     }
 
-    private async getArticleListFromUid(uid: number): Promise<ArchiveItem[]> {
+    private async *getArticleListFromUid(uid: number): AsyncGenerator<ArchiveItem, void, void> {
         const list = await getUpActicleList(uid);
-        let items: ArchiveItem[] = [];
         for (const a of list) {
-            let data = (await getArticleData(a.id))!;
-            items.push({
-                type: "dir",
-                title: a.title,
-                name: `cv${a.id}`,
-                catalogPath: buildCatalogPath(data),
-                from: this,
-                auxData: data
-            });
+            const data = await getArticleData(a.id);
+            if (data) {
+                yield {
+                    type: "dir",
+                    title: a.title,
+                    name: `cv${a.id}`,
+                    catalogPath: buildCatalogPath(data),
+                    from: this,
+                    auxData: data
+                };
+            }
         }
-        return items;
     }
 
-    private async getArticleListFromRlid(rlid: number): Promise<ArchiveItem[]> {
+    private async *getArticleListFromRlid(rlid: number): AsyncGenerator<ArchiveItem, void, void> {
         const list = await getReadlistArticlesList(rlid);
-        let items: ArchiveItem[] = [];
         for (const a of list) {
-            let data = (await getArticleData(a))!;
-            items.push({
+            const data = await getArticleData(a);
+            if (data) {
+                yield {
+                    type: "dir",
+                    title: data.readInfo.title,
+                    name: `cv${data.cvid}`,
+                    catalogPath: buildCatalogPath(data),
+                    from: this,
+                    auxData: data
+                };
+            }
+        }
+    }
+
+    private async *getArticleFromCvid(cvid: number): AsyncGenerator<ArchiveItem, void, void> {
+        const data = await getArticleData(cvid);
+        if (data) {
+            yield {
                 type: "dir",
                 title: data.readInfo.title,
                 name: `cv${data.cvid}`,
                 catalogPath: buildCatalogPath(data),
                 from: this,
                 auxData: data
-            });
-        }
-        return items;
-    }
-
-    private async getArticleFromCvid(cvid: number): Promise<ArchiveItem> {
-        let data = await getArticleData(cvid);
-        return {
-            type: "dir",
-            title: data!.readInfo.title,
-            name: `cv${data!.cvid}`,
-            catalogPath: buildCatalogPath(data!),
-            from: this,
-            auxData: data
+            }
         }
     }
 }
@@ -317,7 +321,7 @@ interface ArticleData {
 }
 
 function buildCatalogPath(data: ArticleData) {
-    let cata = [];
+    const cata = [];
     cata.push({
         id: 'u' + data.readInfo.author.mid,
         name: data.readInfo.author.name
@@ -332,21 +336,21 @@ function buildCatalogPath(data: ArticleData) {
 }
 
 async function getUpActicleList(uid: number): Promise<Article[]> {
-    let articles = [];
-    let firstGet = await axios.get(`https://api.bilibili.com/x/space/article?mid=${uid}`);
+    const articles = [];
+    const firstGet = await axios.get(`https://api.bilibili.com/x/space/article?mid=${uid}`);
     articles.push(...firstGet.data.data.articles);
-    let pageSize = firstGet.data.data.ps;
-    let articleTotal = firstGet.data.data.count;
+    const pageSize = firstGet.data.data.ps;
+    const articleTotal = firstGet.data.data.count;
     for (let i = 2; (i - 1) * pageSize <= articleTotal; i++) {
-        let nextGet = await axios.get(`https://api.bilibili.com/x/space/article?mid=${uid}&pn=${i}`);
+        const nextGet = await axios.get(`https://api.bilibili.com/x/space/article?mid=${uid}&pn=${i}`);
         articles.push(...nextGet.data.data.articles);
     }
     return [... new Set(articles)];
 }
 
 async function getArticleData(cvid: number): Promise<ArticleData | null> {
-    let data = await (await axios.get(`https://www.bilibili.com/read/cv${cvid}`)).data;
-    let articleData = data.match(/__INITIAL_STATE__=(.*);\(f/);
+    const data = await (await axios.get(`https://www.bilibili.com/read/cv${cvid}`)).data;
+    const articleData = data.match(/__INITIAL_STATE__=(.*);\(f/);
     if (articleData.length >= 2) {
         return JSON.parse(articleData[1]);
     }
@@ -354,8 +358,8 @@ async function getArticleData(cvid: number): Promise<ArticleData | null> {
 }
 
 async function getReadlistArticlesList(rlid: number): Promise<number[]> {
-    let rldata = axios.get(` https://www.bilibili.com/read/readlist/rl${rlid}`);
-    let data = (await rldata).data.match(/window\.articlelistIds = (\[(\d+)(,(\d+))*\])/);
+    const rldata = axios.get(` https://www.bilibili.com/read/readlist/rl${rlid}`);
+    const data = (await rldata).data.match(/window\.articlelistIds = (\[(\d+)(,(\d+))*\])/);
     console.log(data);
     if (data.length >= 2) {
         return JSON.parse(data[1]);
@@ -364,16 +368,16 @@ async function getReadlistArticlesList(rlid: number): Promise<number[]> {
 }
 
 function article2html(articleData: ArticleData): string {
-    let body = articleData.readInfo.content
+    const body = articleData.readInfo.content
         .replaceAll(/<figure.*?([0-9a-f]{40}\....).*?figure>/g, "<img src=\"images/$1\"></img>")
-        .replaceAll(/<img.*?formula=(.*?)".*?>/g, (match, p1, offset, string) => {
-            let f = decodeURIComponent(p1);
+        .replaceAll(/<img.*?formula=(.*?)".*?>/g, (_match, p1) => {
+            const f = decodeURIComponent(p1);
             return `<code>$$${f}$$</code>`
         })
-        .replaceAll(/<figure.*?codecontent="(.*?)".*?figure>/gs, (match, p1, offset, string) => {
+        .replaceAll(/<figure.*?codecontent="(.*?)".*?figure>/gs, (_match, p1) => {
             return `<pre>${p1.replaceAll("&amp;", "&")}</pre>`
         })
-    let html = `
+    const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>

@@ -5,18 +5,18 @@ import { pathJoin } from '../src/utils';
 import browser from 'webextension-polyfill';
 import { Message } from './types';
 
-let tooibasho = new TooiBasho();
+const tooibasho = new TooiBasho();
 tooibasho.addPlugin(new BilibiliZhuanlan());
-let archiver = new ZipArchiver();
+const archiver = new ZipArchiver();
 let items: { archiveItem: ArchiveItem, domItem: HTMLElement }[] = [];
 const url_list = document.getElementById("url-list")!;
 const btn = document.getElementById('archive')!;
 const spin = document.getElementById('spin')!;
 
 function buildButton(item: ArchiveItem) {
-    let btn = document.createElement('button');
-    btn.appendChild(document.createTextNode('移除'));
-    btn.addEventListener("click", () => {
+    const b = document.createElement('button');
+    b.appendChild(document.createTextNode('移除'));
+    b.addEventListener("click", () => {
         items.forEach(i => {
             if (i.archiveItem === item) {
                 url_list.removeChild(i.domItem);
@@ -24,10 +24,10 @@ function buildButton(item: ArchiveItem) {
         })
         items = items.filter(i => i.archiveItem !== item);
     });
-    return btn;
+    return b;
 }
 
-browser.runtime.onMessage.addListener(async (message: Message, _sender) => {
+browser.runtime.onMessage.addListener(async (message: Message) => {
     console.log(`Received ${message.message} Message`);
     if (message.message === 'awake') {
         return {};
@@ -39,16 +39,17 @@ browser.runtime.onMessage.addListener(async (message: Message, _sender) => {
 
 async function newUrl(url: string) {
     document.title = spin.innerText = `解析 ${url} 中`;
-    const new_items = await tooibasho.detect(url);
-    console.log(`${new_items.length} Articles Detected`);
-    for (const item of new_items) {
-        let li = document.createElement('li');
+    const items_gen = tooibasho.detect(url);
+    let count = 0;
+    for await (const item of items_gen) {
+        const li = document.createElement('li');
         li.appendChild(document.createTextNode(pathJoin(...item.catalogPath.map(c => c.name), item.title)));
         li.appendChild(buildButton(item));
         items.push({ archiveItem: item, domItem: li });
         url_list.appendChild(li);
+        count++;
     }
-    document.title = `新增${new_items.length}篇`;
+    document.title = `新增${count}篇`;
     setTimeout(() => {
         document.title = 'TooiBasho'
     }, 2000)
@@ -58,7 +59,7 @@ async function newUrl(url: string) {
 btn.onclick = async () => {
     btn.setAttribute('disable', 'true');
     btn.innerText = '打包中';
-    let gen = tooibasho.archive(items.map(i => i.archiveItem), archiver);
+    const gen = tooibasho.archive(items.map(i => i.archiveItem), archiver);
     for await (const i of gen) {
         items.forEach(item => {
             if (item.archiveItem === i.item) {
@@ -73,5 +74,4 @@ btn.onclick = async () => {
     }
     await archiver.package();
     btn.innerText = '打包已完成';
-    //btn.setAttribute('disable', 'false');
 };

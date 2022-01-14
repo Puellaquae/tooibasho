@@ -1,4 +1,5 @@
-import { pathJoin } from "./utils";
+import { combineAsyncGenerator, pathJoin } from "./utils";
+const { hasOwnProperty } = Object.prototype;
 
 interface Archiver {
     append: (file: Buffer | string, config: { name: string, paths: string[] }) => Archiver
@@ -6,7 +7,7 @@ interface Archiver {
 
 interface Plugin {
     urlFilter: RegExp[],
-    detect: (url: string) => Promise<ArchiveItem[]>,
+    detect: (url: string) => AsyncGenerator<ArchiveItem, void, void>,
     archive: (item: ArchiveItem, archiver: Archiver) => Promise<{ entryfile: string }>
 }
 
@@ -33,21 +34,18 @@ class TooiBasho {
         this.urlFilters.push(...plugin.urlFilter.map(r => { return { reg: r, plugin: plugin } }));
     }
 
-    async detect(url: string): Promise<ArchiveItem[]> {
-        let items: ArchiveItem[] = [];
-        let detecting = this.urlFilters
+    async * detect(url: string): AsyncGenerator<ArchiveItem, void, void> {
+        const gens = this.urlFilters
             .filter(f => f.reg.test(url))
-            .map(async f => await f.plugin.detect(url))
-        await Promise.all(detecting);
-        detecting.forEach(async i => items.push(...await i));
-        return items;
+            .map(f => f.plugin.detect(url))
+        yield* combineAsyncGenerator(...gens);
     }
 
     async * archive(items: ArchiveItem[], archiver: Archiver) {
-        let menu: ContentTable = { dirs: {}, items: [] };
+        const menu: ContentTable = { dirs: {}, items: [] };
         for (const item of items) {
             try {
-                let { entryfile } = await item.from.archive(item, archiver);
+                const { entryfile } = await item.from.archive(item, archiver);
                 let curmenu = menu;
                 for (const path of item.catalogPath) {
                     curmenu.dirs[path.id] = curmenu.dirs[path.id] ?? { name: path.name, content: { dirs: {}, items: [] } };
@@ -73,7 +71,7 @@ function buildContentMenu(menu: ContentTable): string {
     function buildContent(name: string, menu: ContentTable): string {
         let html = `<details><summary>${name}</summary>`
         for (const dir in menu.dirs) {
-            if (menu.dirs.hasOwnProperty(dir)) {
+            if (hasOwnProperty.call(menu.dirs, dir)) {
                 html += buildContent(menu.dirs[dir].name, menu.dirs[dir].content);
             }
         }
@@ -97,7 +95,7 @@ function buildContentMenu(menu: ContentTable): string {
     <body>
     `
     for (const dir in menu.dirs) {
-        if (menu.dirs.hasOwnProperty(dir)) {
+        if (hasOwnProperty.call(menu.dirs, dir)) {
             html += buildContent(menu.dirs[dir].name, menu.dirs[dir].content);
         }
     }

@@ -1,5 +1,4 @@
 import browser from 'webextension-polyfill';
-import { Message } from './types';
 
 browser.runtime.onInstalled.addListener(() => {
     browser.contextMenus.create({
@@ -10,7 +9,9 @@ browser.runtime.onInstalled.addListener(() => {
 
 browser.contextMenus.onClicked.addListener(async (_info, tab) => {
     await awakeOptionPage();
-    sendUrl(tab!.url!);
+    if (tab?.url) {
+        sendUrl(tab.url);
+    }
 });
 
 async function awakeOptionPage() {
@@ -21,7 +22,7 @@ async function awakeOptionPage() {
         console.log('Option Page Not Opened');
         await browser.runtime.openOptionsPage();
     }
-    while (true) {
+    for (; ;) {
         try {
             await browser.runtime.sendMessage({ message: 'awake' });
             return;
@@ -32,7 +33,7 @@ async function awakeOptionPage() {
 }
 
 function sendUrl(url: string) {
-    browser.runtime.sendMessage({ message: 'url', url: url }).catch(_err => {
+    browser.runtime.sendMessage({ message: 'url', url: url }).catch(() => {
         sendUrl(url);
     })
 }
