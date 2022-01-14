@@ -1,5 +1,6 @@
 import axios from "axios";
 import { Archiver, ArchiveItem, Plugin } from "..";
+import { pathJoin } from "../utils";
 
 const FROM_SPACE = /https?:\/\/space\.bilibili\.com\/(\d+)\/article/;
 const FROM_READLIST = /https?:\/\/www\.bilibili\.com\/read\/readlist\/rl(\d+)/;
@@ -77,7 +78,7 @@ class BilibiliZhuanlan implements Plugin {
         });
         await Promise.all(downloadImages);
         return {
-            entryfile: 'article.html'
+            entryfile: pathJoin(item.name, 'article.html')
         }
     }
 
@@ -85,12 +86,12 @@ class BilibiliZhuanlan implements Plugin {
         const list = await getUpActicleList(uid);
         let items: ArchiveItem[] = [];
         for (const a of list) {
-            let data = await getArticleData(a.id);
+            let data = (await getArticleData(a.id))!;
             items.push({
                 type: "dir",
                 title: a.title,
                 name: `cv${a.id}`,
-                catalogPath: buildCatalogPath(data!),
+                catalogPath: buildCatalogPath(data),
                 from: this,
                 auxData: data
             });
@@ -99,7 +100,20 @@ class BilibiliZhuanlan implements Plugin {
     }
 
     private async getArticleListFromRlid(rlid: number): Promise<ArchiveItem[]> {
-        return [];
+        const list = await getReadlistArticlesList(rlid);
+        let items: ArchiveItem[] = [];
+        for (const a of list) {
+            let data = (await getArticleData(a))!;
+            items.push({
+                type: "dir",
+                title: data.readInfo.title,
+                name: `cv${data.cvid}`,
+                catalogPath: buildCatalogPath(data),
+                from: this,
+                auxData: data
+            });
+        }
+        return items;
     }
 
     private async getArticleFromCvid(cvid: number): Promise<ArchiveItem> {
@@ -332,12 +346,21 @@ async function getUpActicleList(uid: number): Promise<Article[]> {
 
 async function getArticleData(cvid: number): Promise<ArticleData | null> {
     let data = await (await axios.get(`https://www.bilibili.com/read/cv${cvid}`)).data;
-    let articleData = data.match(/__INITIAL_STATE__=(.*);\(f/g)
-    if (articleData.length >= 1) {
-        const tempstr = articleData[0].substr(18);
-        return JSON.parse(tempstr.substr(0, tempstr.length - 3));
+    let articleData = data.match(/__INITIAL_STATE__=(.*);\(f/);
+    if (articleData.length >= 2) {
+        return JSON.parse(articleData[1]);
     }
     return null
+}
+
+async function getReadlistArticlesList(rlid: number): Promise<number[]> {
+    let rldata = axios.get(` https://www.bilibili.com/read/readlist/rl${rlid}`);
+    let data = (await rldata).data.match(/window\.articlelistIds = (\[(\d+)(,(\d+))*\])/);
+    console.log(data);
+    if (data.length >= 2) {
+        return JSON.parse(data[1]);
+    }
+    return [];
 }
 
 function article2html(articleData: ArticleData): string {
@@ -484,4 +507,4 @@ function article2html(articleData: ArticleData): string {
     return html;
 }
 
-export { BilibiliZhuanlan };
+export default BilibiliZhuanlan;

@@ -1,5 +1,7 @@
 *.zip
 build
+lib
+test.js
 
 # Logs
 logs

@@ -63,7 +63,7 @@ class TooiBasho {
             }
         }
         archiver.append(buildContentMenu(menu), { name: 'index.html', paths: [] });
-        
+
         return;
     }
 }

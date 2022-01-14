@@ -8,12 +8,12 @@ module.exports = {
     extensions: ['.js', '.ts', '.json'],
   },
   entry: {
-    service: path.resolve(__dirname, 'chrome_extension', 'service.ts'),
-    app: path.resolve(__dirname, 'chrome_extension', 'app.ts')
+    service: path.resolve(__dirname, 'extension', 'service.ts'),
+    app: path.resolve(__dirname, 'extension', 'app.ts')
   },
   output: {
     filename: '[name].js',
-    path: path.resolve(__dirname, 'chrome_extension', 'build'),
+    path: path.resolve(__dirname, 'extension', 'build'),
   },
   module: {
     rules: [
@@ -24,7 +24,7 @@ module.exports = {
     new CopyPlugin({
       patterns: [
         {
-          from: path.resolve(__dirname, 'chrome_extension', 'public')
+          from: path.resolve(__dirname, 'extension', 'public')
         },
       ]
     }),
