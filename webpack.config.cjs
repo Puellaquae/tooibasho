@@ -3,7 +3,7 @@ const CopyPlugin = require("copy-webpack-plugin");
 const { VueLoaderPlugin } = require('vue-loader');
 
 module.exports = env => ({
-  mode: 'development',
+  mode: env.mode,
   devtool: 'cheap-module-source-map',
   resolve: {
     extensions: ['.js', '.ts', '.json'],
