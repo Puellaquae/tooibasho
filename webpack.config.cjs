@@ -1,7 +1,8 @@
 const path = require('path');
 const CopyPlugin = require("copy-webpack-plugin");
+const { VueLoaderPlugin } = require('vue-loader');
 
-module.exports = {
+module.exports = env => ({
   mode: 'development',
   devtool: 'cheap-module-source-map',
   resolve: {
@@ -9,7 +10,7 @@ module.exports = {
   },
   entry: {
     service: path.resolve(__dirname, 'extension', 'service.ts'),
-    app: path.resolve(__dirname, 'extension', 'app.ts')
+    app: path.resolve(__dirname, 'extension', 'main.ts')
   },
   output: {
     filename: '[name].js',
@@ -17,7 +18,24 @@ module.exports = {
   },
   module: {
     rules: [
-      { test: /\.ts$/, exclude: /node_modules/, use: 'ts-loader' }
+      {
+        test: /\.vue$/,
+        use: 'vue-loader'
+      },
+      {
+        test: /\.css$/,
+        use: 'css-loader'
+      },
+      {
+        test: /\.ts$/,
+        exclude: /node_modules/,
+        use: {
+          loader: 'ts-loader',
+          options: {
+            appendTsSuffixTo: [/\.vue$/]
+          }
+        }
+      },
     ]
   },
   plugins: [
@@ -28,5 +46,6 @@ module.exports = {
         },
       ]
     }),
+    new VueLoaderPlugin()
   ],
-};
+});

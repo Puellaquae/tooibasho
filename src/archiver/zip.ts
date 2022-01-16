@@ -15,10 +15,10 @@ class ZipArchiver implements Archiver {
             binary: isArrayBuffer(file)
         })
         return this;
-    };
+    }
 
     async package() {
-        let blob = await this.jszip.generateAsync({ type: "blob" })
+        const blob = await this.jszip.generateAsync({ type: "blob" })
         saveAs(blob, "archive.zip");
     }
 }

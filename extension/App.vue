@@ -1,0 +1,42 @@
+<template>
+  <n-message-provider>
+    <n-card :bordered="false">
+      <n-tabs type="line" size="large">
+        <n-tab-pane name="archive" tab="存档" display-directive="show">
+          <archiver ref="archiver" />
+        </n-tab-pane>
+        <n-tab-pane name="setting" tab="设置"> </n-tab-pane>
+      </n-tabs>
+    </n-card>
+  </n-message-provider>
+</template>
+
+<script lang="ts">
+import { defineComponent, ref } from "vue";
+import { NMessageProvider, NCard, NTabs, NTabPane } from "naive-ui";
+import Archiver from "./Archiver.vue";
+
+export default defineComponent({
+  components: {
+    NMessageProvider,
+    NTabs,
+    NCard,
+    NTabPane,
+    Archiver,
+  },
+  setup() {
+    const archiver = ref<null | { addUrl: (url: string) => void }>(null);
+    return {
+      archiver,
+    };
+  },
+  methods: {
+    addUrl(url: string) {
+      this.archiver?.addUrl(url);
+    },
+  },
+});
+</script>
+
+<style>
+</style>

@@ -360,7 +360,6 @@ async function getArticleData(cvid: number): Promise<ArticleData | null> {
 async function getReadlistArticlesList(rlid: number): Promise<number[]> {
     const rldata = axios.get(` https://www.bilibili.com/read/readlist/rl${rlid}`);
     const data = (await rldata).data.match(/window\.articlelistIds = (\[(\d+)(,(\d+))*\])/);
-    console.log(data);
     if (data.length >= 2) {
         return JSON.parse(data[1]);
     }
