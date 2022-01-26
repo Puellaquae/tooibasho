@@ -5,21 +5,12 @@
       <n-button type="primary" @click="handleNewUrl"> 添加 </n-button>
     </n-input-group>
     <n-space align="center">
-      <n-statistic label="已选" :value="selectedItems.length">
-        <template #suffix>/ {{ items.size }}</template>
-      </n-statistic>
-      <n-popover
-        trigger="hover"
-        :disabled="btnStatus !== 'fin'"
-        placement="right"
-      >
-        <template #trigger>
-          <n-button type="primary" :loading="inArchiving" @click="archive">
-            {{ btnStatusInfo[btnStatus] }}
-          </n-button>
-        </template>
-        <span> 对于已完成项将不会纳入后续存档打包内容。 </span>
-      </n-popover>
+      <n-button type="primary" :loading="inArchiving" @click="archive">
+        {{ !inArchiving ? "存档" : "存档中" }}
+      </n-button>
+      <n-button type="primary" :loading="inPackaging" @click="packup">
+        {{ !inPackaging ? "导出" : "导出中" }}
+      </n-button>
     </n-space>
     <n-tree
       block-line
@@ -28,7 +19,7 @@
       default-expand-all
       virtual-scroll
       style="height: calc(100vh - 240px)"
-      :leaf-only="true"
+      leaf-only
       :selectable="false"
       :data="data"
       :checked-keys="selectedItems"
@@ -45,37 +36,29 @@ import {
   NInputGroup,
   NButton,
   useMessage,
-  NStatistic,
   NSpace,
-  NPopover,
 } from "naive-ui";
 
-import { ArchiveItem, TooiBasho } from "../src/index";
-import BilibiliZhuanlan from "../src/bilibili/zhuanlan";
+import { ArchiveItem } from "../src/index";
 import { ZipArchiver } from "../src/archiver/zip";
 import { pathJoin } from "../src/utils";
+import { tooibasho } from "./global";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const tooibasho = new TooiBasho();
-tooibasho.addPlugin(new BilibiliZhuanlan());
 const zipper = new ZipArchiver();
 
+// 添加后默认为 ready，skip 和 ready 可通过选择框转换，存档后变为 fin 或 err
+// fin 会锁定住那一项阻止状态变换，err 会在再次存档变为 ready 或由选择框变为 skip
 type ItemStatus = "skip" | "ready" | "fin" | "err";
-type BtnStatus = "ready" | "downloading" | "packaging" | "fin";
+
 const itemStatusInfo: { [K in ItemStatus]: string } = {
-  skip: "跳过",
-  ready: "下载",
-  fin: "完成",
-  err: "失败",
-};
-const btnStatusInfo: { [K in BtnStatus]: string } = {
-  ready: "存档并导出",
-  downloading: "存档中",
-  packaging: "打包中",
-  fin: "完成",
+  skip: "不存档",
+  ready: "待存档",
+  fin: "待导出",
+  err: "存档失败",
 };
 
 interface TreeData {
@@ -84,6 +67,7 @@ interface TreeData {
   key: number | string;
   isLeaf: boolean;
   children?: TreeData[];
+  disabled?: boolean;
   suffix?: string | (() => VNodeChild);
   prefix?: string | (() => VNodeChild);
 }
@@ -94,9 +78,7 @@ export default defineComponent({
     NInputGroup,
     NInput,
     NButton,
-    NStatistic,
     NSpace,
-    NPopover,
   },
   setup() {
     const message = useMessage();
@@ -109,11 +91,13 @@ export default defineComponent({
     return {
       inputUrl: "",
       data,
-      items: new Map<string, { status: ItemStatus; item: ArchiveItem }>(),
+      items: new Map<
+        string,
+        { status: ItemStatus; key: string; item: ArchiveItem; leaf: TreeData }
+      >(),
       selectedItems: new Array<string>(),
       inArchiving: false,
-      btnStatus: "ready" as BtnStatus,
-      btnStatusInfo,
+      inPackaging: false,
     };
   },
   methods: {
@@ -148,6 +132,29 @@ export default defineComponent({
             children: [],
             key: pathJoin,
             isLeaf: false,
+            suffix: () => {
+              let status: Map<ItemStatus, number> = new Map();
+              this.items.forEach((v) => {
+                if (v.key.startsWith(pathJoin)) {
+                  if (!status.has(v.status)) {
+                    status.set(v.status, 1);
+                  } else {
+                    status.set(v.status, status.get(v.status)! + 1);
+                  }
+                }
+              });
+              let display = "";
+              let first = false;
+              for (const [s, v] of status.entries()) {
+                if (first) {
+                  first = false;
+                } else {
+                  display += " ";
+                }
+                display += `${v}项${itemStatusInfo[s]}`;
+              }
+              return h("span", null, display);
+            },
           };
           curtree.push(nexttree);
         }
@@ -155,25 +162,21 @@ export default defineComponent({
       }
       const key = pathJoin + item.name;
       if (!curtree.some((i) => i.key === key)) {
-        curtree.push({
+        const leaf = {
           label: item.title,
           pathId: item.name,
           key,
           isLeaf: true,
           suffix: () =>
             h("span", null, itemStatusInfo[this.items.get(key)!.status]),
-        });
-        this.items.set(key, { status: "ready", item });
+        };
+        curtree.push(leaf);
+        this.items.set(key, { status: "ready", key, item, leaf });
         this.selectedItems.push(key);
       }
     },
     async archive() {
-      if (this.btnStatus === "fin") {
-        this.btnStatus = "ready";
-        return;
-      }
       this.inArchiving = true;
-      this.btnStatus = "downloading";
       const downItems = this.selectedItems
         .filter((k) => {
           const status = this.items.get(k)?.status;
@@ -192,18 +195,29 @@ export default defineComponent({
           ...i.item.catalogPath.map((p) => p.id.toString()),
           i.item.name
         );
-        this.items.get(key)!.status = i.success ? "fin" : "err";
+        if (i.success) {
+          this.items.get(key)!.status = "fin";
+          this.items.get(key)!.leaf.disabled = true;
+        } else {
+          this.items.get(key)!.status = "err";
+        }
       }
-      this.btnStatus = "packaging";
-      await zipper.package();
       this.inArchiving = false;
-      this.btnStatus = "fin";
+    },
+    async packup() {
+      this.inPackaging = true;
+      await zipper.package();
+      this.inPackaging = false;
     },
     selectedUpdate(v: string[]) {
-      if (!this.inArchiving) {
+      if (!this.inArchiving && !this.inPackaging) {
         this.selectedItems.forEach((i) => {
-          if (!v.includes(i) && this.items.get(i)?.status === "ready") {
-            this.items.get(i)!.status = "skip";
+          const item = this.items.get(i);
+          if (
+            !v.includes(i) &&
+            (item?.status === "ready" || item?.status === "err")
+          ) {
+            item!.status = "skip";
           }
         });
         this.selectedItems = v;
@@ -212,6 +226,8 @@ export default defineComponent({
             this.items.get(i)!.status = "ready";
           }
         });
+      } else {
+        this.message.info("存档或导出中无法更改")
       }
     },
   },

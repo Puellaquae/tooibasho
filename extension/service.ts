@@ -1,16 +1,30 @@
 import browser from 'webextension-polyfill';
+import { ExtensionContextMenuForPageID, ExtensionContextMenuForLinkID, plugins } from './global';
 
 browser.runtime.onInstalled.addListener(() => {
+    const urlPattern: string[] = [];
+    plugins.forEach(p => urlPattern.push(...p.urlPattern));
     browser.contextMenus.create({
-        "id": "add",
-        "title": "加入存档队列"
+        id: ExtensionContextMenuForPageID,
+        title: "将当前页面地址加入存档队列",
+        contexts: ["page"],
+        documentUrlPatterns: urlPattern
+    });
+    browser.contextMenus.create({
+        id: ExtensionContextMenuForLinkID,
+        title: "将链接地址加入存档队列",
+        contexts: ["link"],
+        targetUrlPatterns: urlPattern
     });
 });
 
-browser.contextMenus.onClicked.addListener(async (_info, tab) => {
+browser.contextMenus.onClicked.addListener(async (info) => {
     await awakeOptionPage();
-    if (tab?.url) {
-        sendUrl(tab.url);
+    if (info.menuItemId === ExtensionContextMenuForPageID && info.pageUrl) {
+        sendUrl(info.pageUrl);
+    }
+    else if (info.menuItemId === ExtensionContextMenuForLinkID && info.linkUrl) {
+        sendUrl(info.linkUrl);
     }
 });
 

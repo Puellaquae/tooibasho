@@ -1,17 +1,9 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import browser from 'webextension-polyfill';
+import { Message } from './types';
 
 const app = createApp(App).mount('#app');
-
-console.dir(app);
-
-type Message = {
-    message: 'awake'
-} | {
-    message: 'url',
-    url: string
-}
 
 browser.runtime.onMessage.addListener(async (message: Message) => {
     console.log(`Received ${message.message} Message`);

@@ -6,7 +6,11 @@ interface Archiver {
 }
 
 interface Plugin {
-    urlFilter: RegExp[],
+    urlPattern: string[],
+    name: string,
+    info: string,
+
+    test: (url: string) => boolean,
     detect: (url: string) => AsyncGenerator<ArchiveItem, void, void>,
     archive: (item: ArchiveItem, archiver: Archiver) => Promise<{ entryfile: string }>
 }
@@ -28,16 +32,16 @@ interface ContentTable {
 }
 
 class TooiBasho {
-    urlFilters: { reg: RegExp, plugin: Plugin }[] = [];
+    plugins: Plugin[] = [];
 
     addPlugin(plugin: Plugin) {
-        this.urlFilters.push(...plugin.urlFilter.map(r => { return { reg: r, plugin: plugin } }));
+        this.plugins.push(plugin);
     }
 
     async * detect(url: string): AsyncGenerator<ArchiveItem, void, void> {
-        const gens = this.urlFilters
-            .filter(f => f.reg.test(url))
-            .map(f => f.plugin.detect(url))
+        const gens = this.plugins
+            .filter(f => f.test(url))
+            .map(f => f.detect(url))
         yield* combineAsyncGenerator(...gens);
     }
 

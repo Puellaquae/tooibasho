@@ -3,18 +3,28 @@ import { Archiver, ArchiveItem, Plugin } from "..";
 import { pathJoin } from "../utils";
 
 const FROM_SPACE = /https?:\/\/space\.bilibili\.com\/(\d+)\/article/;
+const SPACE_URL_PATTERN = "*://space.bilibili.com/*/article";
 const FROM_READLIST = /https?:\/\/www\.bilibili\.com\/read\/readlist\/rl(\d+)/;
+const READLIST_URL_PATTERN = "*://www.bilibili.com/read/readlist/*";
 const FROM_READ = /https?:\/\/www\.bilibili\.com\/read\/cv(\d+)/;
+const READ_URL_PATTERN = "*://www.bilibili.com/read/*";
 
 class BilibiliZhuanlan implements Plugin {
-    urlFilter: RegExp[];
+    urlFilter: RegExp[] = [
+        FROM_SPACE,
+        FROM_READLIST,
+        FROM_READ
+    ];
+    urlPattern: string[] = [
+        SPACE_URL_PATTERN,
+        READLIST_URL_PATTERN,
+        READ_URL_PATTERN
+    ];
+    name = "B站专栏";
+    info = "B站专栏保存工具";
 
-    constructor() {
-        this.urlFilter = [
-            FROM_SPACE,
-            FROM_READLIST,
-            FROM_READ
-        ];
+    test(url: string): boolean {
+        return this.urlFilter.map(f => f.test(url)).some(v => v);
     }
 
     async *detect(url: string): AsyncGenerator<ArchiveItem, void, void> {
@@ -220,96 +230,14 @@ interface Article {
     } | null
 }
 
+interface ReadInfo extends Article {
+    content: string,
+    keywords: string
+}
+
 interface ArticleData {
     cvid: number,
-    readInfo: {
-        id: number,
-        category: {
-            id: number,
-            parent_id: number,
-            name: string
-        },
-        categories: {
-            id: number,
-            parent_id: number,
-            name: string
-        }[],
-        title: string,
-        summary: string,
-        banner_url: string,
-        template_id: number,
-        state: number,
-        author: {
-            mid: number,
-            name: string,
-            face: string,
-            pendant: {
-                pid: number,
-                name: string,
-                image: string,
-                expire: number
-            },
-            official_verify: {
-                type: number,
-                desc: string
-            },
-            nameplate: {
-                nid: 0,
-                name: string,
-                image: string,
-                image_small: string,
-                level: string,
-                condition: string
-            },
-            vip: {
-                type: number,
-                status: number,
-                due_date: number,
-                vip_pay_type: number,
-                theme_type: number,
-                label: {
-                    path: string,
-                    text: string,
-                    label_theme: string
-                },
-                avatar_subscript: number,
-                nickname_color: string
-            }
-        },
-        reprint: number,
-        image_urls: string[]
-        publish_time: number,
-        ctime: number,
-        stats: {
-            view: number,
-            favorite: number,
-            like: number,
-            dislike: number,
-            reply: number,
-            share: number,
-            coin: number,
-            dynamic: number
-        },
-        tags: { tid: number, name: string }[],
-        words: number,
-        dynamic: string,
-        origin_image_urls: string[],
-        list: {
-            id: number,
-            mid: number,
-            name: string,
-            image_url: string,
-            update_time: number,
-            ctime: number,
-            publish_time: number,
-            summary: string,
-            words: number,
-            read: number,
-            articles_count: number
-        } | null
-        content: string,
-        keywords: string
-    },
+    readInfo: ReadInfo,
     readViewInfo: {
         total: number
     },
@@ -505,7 +433,7 @@ function article2html(articleData: ArticleData): string {
         }
     </style>
 </head>
-<body><h1>${articleData.readInfo.title}</h1>${articleData.readInfo.banner_url ? '<img src="cover.jpg">' : ''}</img><div class="split"></div>${body}</body></html>
+<body><h1>${articleData.readInfo.title}</h1>${articleData.readInfo.banner_url ? '<img src="cover.jpg"/>' : ''}<div class="split"/>${body}</body></html>
 `
     return html;
 }
