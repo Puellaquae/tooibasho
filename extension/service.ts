@@ -1,17 +1,17 @@
 import browser from 'webextension-polyfill';
-import { ExtensionContextMenuForPageID, ExtensionContextMenuForLinkID, plugins } from './global';
+import { CONTEXT_MENU_ID_LINK, CONTEXT_MENU_ID_PAGE, plugins } from './global';
 
 browser.runtime.onInstalled.addListener(() => {
     const urlPattern: string[] = [];
     plugins.forEach(p => urlPattern.push(...p.urlPattern));
     browser.contextMenus.create({
-        id: ExtensionContextMenuForPageID,
+        id: CONTEXT_MENU_ID_PAGE,
         title: "将当前页面地址加入存档队列",
         contexts: ["page"],
         documentUrlPatterns: urlPattern
     });
     browser.contextMenus.create({
-        id: ExtensionContextMenuForLinkID,
+        id: CONTEXT_MENU_ID_LINK,
         title: "将链接地址加入存档队列",
         contexts: ["link"],
         targetUrlPatterns: urlPattern
@@ -20,10 +20,10 @@ browser.runtime.onInstalled.addListener(() => {
 
 browser.contextMenus.onClicked.addListener(async (info) => {
     await awakeOptionPage();
-    if (info.menuItemId === ExtensionContextMenuForPageID && info.pageUrl) {
+    if (info.menuItemId === CONTEXT_MENU_ID_PAGE && info.pageUrl) {
         sendUrl(info.pageUrl);
     }
-    else if (info.menuItemId === ExtensionContextMenuForLinkID && info.linkUrl) {
+    else if (info.menuItemId === CONTEXT_MENU_ID_LINK && info.linkUrl) {
         sendUrl(info.linkUrl);
     }
 });

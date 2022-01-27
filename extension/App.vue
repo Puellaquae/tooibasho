@@ -5,7 +5,9 @@
         <n-tab-pane name="archive" tab="存档" display-directive="show">
           <archiver ref="archiver" />
         </n-tab-pane>
-        <n-tab-pane name="setting" tab="设置"> </n-tab-pane>
+        <n-tab-pane name="setting" tab="设置">
+          <setting />   
+        </n-tab-pane>
       </n-tabs>
     </n-card>
   </n-message-provider>
@@ -15,6 +17,7 @@
 import { defineComponent, ref } from "vue";
 import { NMessageProvider, NCard, NTabs, NTabPane } from "naive-ui";
 import Archiver from "./Archiver.vue";
+import Setting from "./Setting.vue";
 
 export default defineComponent({
   components: {
@@ -23,6 +26,7 @@ export default defineComponent({
     NCard,
     NTabPane,
     Archiver,
+    Setting,
   },
   setup() {
     const archiver = ref<null | { addUrl: (url: string) => void }>(null);

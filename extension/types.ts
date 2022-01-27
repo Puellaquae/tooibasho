@@ -1,3 +1,5 @@
+import { REGISTED_PLUGINS } from "./global";
+
 type Message = {
     message: 'awake'
 } | {
@@ -5,29 +7,56 @@ type Message = {
     url: string
 }
 
-type BasicSetting = {
-    label: string,
+type RegistedPlugins = keyof (typeof REGISTED_PLUGINS)
+
+type Setting = {
+    afterPackaged: "remove" | "reready",
+    allowPackageEmpty: boolean,
+    enabledPlugins: RegistedPlugins[],
+    packageName: string
+}
+
+type IsUnion<T, U extends T = T> =
+    (T extends unknown
+        ? (U extends T ? false : true)
+        : never) extends false ? false : true
+
+type ElementType<T> = T extends (infer U)[] ? U : never;
+
+type BasicFormItem = {
+    label?: string,
     description: string
 };
 
-type BooleanSetting = {
-    type: "boolean",
+type BooleanFormItem = BasicFormItem & {
+    type: "boolean"
 };
 
-type TextSetting = {
-    type: "string",
-};
-
-type SelectionSetting = {
-    type: "select",
-    selections: { label?: string, value: string }[]
-}
-
-type RadioSetting = {
+type RadioFormItem<T> = BasicFormItem & {
     type: "radio",
-    selections: { label?: string, value: string }[]
+    selections: { [K in keyof T]: { label: string, description?: string } }
+};
+
+type SelectionFormItem<T> = BasicFormItem & {
+    type: "select",
+    selections: { [K in keyof T]: { label: string, description?: string } }
 }
 
-type Settings = BasicSetting & (BooleanSetting | TextSetting | SelectionSetting | RadioSetting);
+type TextInputFormItem = BasicFormItem & {
+    type: "text"
+};
 
-export { Message, Settings };
+type SettingInf = {
+    [K in keyof Setting]: (Setting[K] extends boolean
+        ? BooleanFormItem
+        : (IsUnion<Setting[K]> extends true
+            ? RadioFormItem<Setting[K]>
+            : (Setting[K] extends string
+                ? TextInputFormItem
+                : (ElementType<Setting[K]> extends never
+                    ? never
+                    : SelectionFormItem<ElementType<Setting[K]>>
+                ))))
+};
+
+export { Message, Setting, SettingInf };

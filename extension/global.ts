@@ -1,6 +1,10 @@
 import { Plugin, TooiBasho } from "../src/index";
 import BilibiliZhuanlan from "../src/bilibili/zhuanlan";
 
+const REGISTED_PLUGINS = {
+    "BilibiliZhuanlan": BilibiliZhuanlan,
+} as const
+
 const plugins: Plugin[] = [
     new BilibiliZhuanlan(),
 ]
@@ -13,7 +17,8 @@ const buildTooiBasho = () => {
 
 const tooibasho = buildTooiBasho();
 
-const ExtensionContextMenuForPageID = "tooibasho_page";
-const ExtensionContextMenuForLinkID = "tooibasho_link";
+const CONTEXT_MENU_ID_PAGE = "tooibasho_page";
+const CONTEXT_MENU_ID_LINK = "tooibasho_link";
 
-export { tooibasho, plugins, ExtensionContextMenuForPageID, ExtensionContextMenuForLinkID };
+
+export { tooibasho, plugins, CONTEXT_MENU_ID_PAGE, CONTEXT_MENU_ID_LINK, REGISTED_PLUGINS };
