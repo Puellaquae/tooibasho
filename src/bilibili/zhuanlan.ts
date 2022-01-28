@@ -9,37 +9,35 @@ const READLIST_URL_PATTERN = "*://www.bilibili.com/read/readlist/*";
 const FROM_READ = /https?:\/\/www\.bilibili\.com\/read\/cv(\d+)/;
 const READ_URL_PATTERN = "*://www.bilibili.com/read/*";
 
-class BilibiliZhuanlan implements Plugin {
-    urlFilter: RegExp[] = [
-        FROM_SPACE,
-        FROM_READLIST,
-        FROM_READ
-    ];
-    urlPattern: string[] = [
+const urlFilter = [
+    FROM_SPACE,
+    FROM_READLIST,
+    FROM_READ
+];
+
+const BilibiliZhuanlan: Plugin = {
+    urlPattern: [
         SPACE_URL_PATTERN,
         READLIST_URL_PATTERN,
         READ_URL_PATTERN
-    ];
-    name = "B站专栏";
-    info = "B站专栏保存工具";
-
+    ],
+    label: "B站专栏",
+    description: "B站专栏保存工具",
     test(url: string): boolean {
-        return this.urlFilter.map(f => f.test(url)).some(v => v);
-    }
-
+        return urlFilter.map(f => f.test(url)).some(v => v);
+    },
     async *detect(url: string): AsyncGenerator<ArchiveItem, void, void> {
         const uid = url.match(FROM_SPACE)?.at(1);
         const rlid = url.match(FROM_READLIST)?.at(1);
         const cvid = url.match(FROM_READ)?.at(1);
         if (uid) {
-            yield* this.getArticleListFromUid(parseInt(uid));
+            yield* getArticleListFromUid(parseInt(uid));
         } else if (rlid) {
-            yield* this.getArticleListFromRlid(parseInt(rlid));
+            yield* getArticleListFromRlid(parseInt(rlid));
         } else if (cvid) {
-            yield* this.getArticleFromCvid(parseInt(cvid));
+            yield* getArticleFromCvid(parseInt(cvid));
         }
-    }
-
+    },
     async archive(item: ArchiveItem, archiver: Archiver): Promise<{ entryfile: string }> {
         const MAX_TRY = 5;
         if (!item.auxData) {
@@ -93,52 +91,52 @@ class BilibiliZhuanlan implements Plugin {
             entryfile: pathJoin(item.name, 'article.html')
         }
     }
+}
 
-    private async *getArticleListFromUid(uid: number): AsyncGenerator<ArchiveItem, void, void> {
-        const list = await getUpActicleList(uid);
-        for (const a of list) {
-            const data = await getArticleData(a.id);
-            if (data) {
-                yield {
-                    type: "dir",
-                    title: a.title,
-                    name: `cv${a.id}`,
-                    catalogPath: buildCatalogPath(data),
-                    from: this,
-                    auxData: data
-                };
-            }
+async function* getArticleListFromUid(uid: number): AsyncGenerator<ArchiveItem, void, void> {
+    const list = await getUpActicleList(uid);
+    for (const a of list) {
+        const data = await getArticleData(a.id);
+        if (data) {
+            yield {
+                type: "dir",
+                title: a.title,
+                name: `cv${a.id}`,
+                catalogPath: buildCatalogPath(data),
+                from: BilibiliZhuanlan,
+                auxData: data
+            };
         }
     }
+}
 
-    private async *getArticleListFromRlid(rlid: number): AsyncGenerator<ArchiveItem, void, void> {
-        const list = await getReadlistArticlesList(rlid);
-        for (const a of list) {
-            const data = await getArticleData(a);
-            if (data) {
-                yield {
-                    type: "dir",
-                    title: data.readInfo.title,
-                    name: `cv${data.cvid}`,
-                    catalogPath: buildCatalogPath(data),
-                    from: this,
-                    auxData: data
-                };
-            }
-        }
-    }
-
-    private async *getArticleFromCvid(cvid: number): AsyncGenerator<ArchiveItem, void, void> {
-        const data = await getArticleData(cvid);
+async function* getArticleListFromRlid(rlid: number): AsyncGenerator<ArchiveItem, void, void> {
+    const list = await getReadlistArticlesList(rlid);
+    for (const a of list) {
+        const data = await getArticleData(a);
         if (data) {
             yield {
                 type: "dir",
                 title: data.readInfo.title,
                 name: `cv${data.cvid}`,
                 catalogPath: buildCatalogPath(data),
-                from: this,
+                from: BilibiliZhuanlan,
                 auxData: data
-            }
+            };
+        }
+    }
+}
+
+async function* getArticleFromCvid(cvid: number): AsyncGenerator<ArchiveItem, void, void> {
+    const data = await getArticleData(cvid);
+    if (data) {
+        yield {
+            type: "dir",
+            title: data.readInfo.title,
+            name: `cv${data.cvid}`,
+            catalogPath: buildCatalogPath(data),
+            from: BilibiliZhuanlan,
+            auxData: data
         }
     }
 }

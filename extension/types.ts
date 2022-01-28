@@ -1,4 +1,4 @@
-import { REGISTED_PLUGINS } from "./global";
+import { DEFAULT_SETTING } from "./global";
 
 type Message = {
     message: 'awake'
@@ -7,14 +7,7 @@ type Message = {
     url: string
 }
 
-type RegistedPlugins = keyof (typeof REGISTED_PLUGINS)
-
-type Setting = {
-    afterPackaged: "remove" | "reready",
-    allowPackageEmpty: boolean,
-    enabledPlugins: RegistedPlugins[],
-    packageName: string
-}
+type Setting = typeof DEFAULT_SETTING;
 
 type IsUnion<T, U extends T = T> =
     (T extends unknown
@@ -24,38 +17,37 @@ type IsUnion<T, U extends T = T> =
 type ElementType<T> = T extends (infer U)[] ? U : never;
 
 type BasicFormItem = {
-    label?: string,
-    description: string
+    label: string,
 };
 
-type BooleanFormItem = BasicFormItem & {
-    type: "boolean"
+type SwitchFormItem = BasicFormItem & {
+    type: "switch"
 };
 
-type RadioFormItem<T> = BasicFormItem & {
+type RadioFormItem<T extends string | number> = BasicFormItem & {
     type: "radio",
-    selections: { [K in keyof T]: { label: string, description?: string } }
+    selections: { [K in T]: { label: string, description?: string } }
 };
 
-type SelectionFormItem<T> = BasicFormItem & {
+type SelectionFormItem<T extends string | number> = BasicFormItem & {
     type: "select",
-    selections: { [K in keyof T]: { label: string, description?: string } }
+    selections: { [K in T]: { label: string, description?: string } }
 }
 
 type TextInputFormItem = BasicFormItem & {
     type: "text"
 };
 
-type SettingInf = {
-    [K in keyof Setting]: (Setting[K] extends boolean
-        ? BooleanFormItem
-        : (IsUnion<Setting[K]> extends true
-            ? RadioFormItem<Setting[K]>
-            : (Setting[K] extends string
+type SettingInf<S> = {
+    [K in keyof S]: (S[K] extends boolean
+        ? SwitchFormItem
+        : (IsUnion<S[K]> extends true
+            ? (S[K] extends string | number ? RadioFormItem<S[K]> : never)
+            : (S[K] extends string
                 ? TextInputFormItem
-                : (ElementType<Setting[K]> extends never
+                : (ElementType<S[K]> extends never
                     ? never
-                    : SelectionFormItem<ElementType<Setting[K]>>
+                    : (ElementType<S[K]> extends string | number ? SelectionFormItem<ElementType<S[K]>> : never)
                 ))))
 };
 

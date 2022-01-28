@@ -6,13 +6,13 @@ interface Archiver {
 }
 
 interface Plugin {
-    urlPattern: string[],
-    name: string,
-    info: string,
+    readonly urlPattern: string[];
+    readonly label: string;
+    readonly description: string;
 
-    test: (url: string) => boolean,
-    detect: (url: string) => AsyncGenerator<ArchiveItem, void, void>,
-    archive: (item: ArchiveItem, archiver: Archiver) => Promise<{ entryfile: string }>
+    readonly test: (url: string) => boolean;
+    readonly detect: (url: string) => AsyncGenerator<ArchiveItem, void, void>;
+    readonly archive: (item: ArchiveItem, archiver: Archiver) => Promise<{ entryfile: string }>;
 }
 
 interface ArchiveItem {
@@ -31,43 +31,35 @@ interface ContentTable {
     items: { link: string, name: string }[]
 }
 
-class TooiBasho {
-    plugins: Plugin[] = [];
+async function* detect(url: string, plugins: Plugin[]): AsyncGenerator<ArchiveItem, void, void> {
+    const gens = plugins
+        .filter(f => f.test(url))
+        .map(f => f.detect(url))
+    yield* combineAsyncGenerator(...gens);
+}
 
-    addPlugin(plugin: Plugin) {
-        this.plugins.push(plugin);
-    }
-
-    async * detect(url: string): AsyncGenerator<ArchiveItem, void, void> {
-        const gens = this.plugins
-            .filter(f => f.test(url))
-            .map(f => f.detect(url))
-        yield* combineAsyncGenerator(...gens);
-    }
-
-    async * archive(items: ArchiveItem[], archiver: Archiver) {
-        const menu: ContentTable = { dirs: {}, items: [] };
-        for (const item of items) {
-            try {
-                const { entryfile } = await item.from.archive(item, archiver);
-                let curmenu = menu;
-                for (const path of item.catalogPath) {
-                    curmenu.dirs[path.id] = curmenu.dirs[path.id] ?? { name: path.name, content: { dirs: {}, items: [] } };
-                    curmenu = curmenu.dirs[path.id].content;
-                }
-                curmenu.items.push({
-                    name: item.title,
-                    link: pathJoin(...item.catalogPath.map(c => c.id.toString()), entryfile)
-                })
-                yield { item: item, success: true };
-            } catch (err) {
-                yield { item: item, success: false, err: err };
+async function* archive(items: ArchiveItem[], archiver: Archiver) {
+    const menu: ContentTable = { dirs: {}, items: [] };
+    for (const item of items) {
+        try {
+            const { entryfile } = await item.from.archive(item, archiver);
+            let curmenu = menu;
+            for (const path of item.catalogPath) {
+                curmenu.dirs[path.id] = curmenu.dirs[path.id] ?? { name: path.name, content: { dirs: {}, items: [] } };
+                curmenu = curmenu.dirs[path.id].content;
             }
+            curmenu.items.push({
+                name: item.title,
+                link: pathJoin(...item.catalogPath.map(c => c.id.toString()), entryfile)
+            })
+            yield { item: item, success: true };
+        } catch (err) {
+            yield { item: item, success: false, err: err };
         }
-        archiver.append(buildContentMenu(menu), { name: 'index.html', paths: [] });
-
-        return;
     }
+    archiver.append(buildContentMenu(menu), { name: 'index.html', paths: [] });
+
+    return;
 }
 
 
@@ -110,4 +102,4 @@ function buildContentMenu(menu: ContentTable): string {
     return html;
 }
 
-export { TooiBasho, Archiver, Plugin, ArchiveItem }
+export { detect, archive, Archiver, Plugin, ArchiveItem }

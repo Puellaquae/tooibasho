@@ -5,7 +5,7 @@
         <n-tab-pane name="archive" tab="存档" display-directive="show">
           <archiver ref="archiver" />
         </n-tab-pane>
-        <n-tab-pane name="setting" tab="设置">
+        <n-tab-pane name="setting" tab="设置" display-directive="show">
           <setting />   
         </n-tab-pane>
       </n-tabs>

@@ -1,9 +1,11 @@
 import browser from 'webextension-polyfill';
-import { CONTEXT_MENU_ID_LINK, CONTEXT_MENU_ID_PAGE, plugins } from './global';
+import { CONTEXT_MENU_ID_LINK, CONTEXT_MENU_ID_PAGE, getSetting, initSetting, REGISTED_PLUGINS } from './global';
 
-browser.runtime.onInstalled.addListener(() => {
+browser.runtime.onInstalled.addListener(async () => {
+    await initSetting();
+    const setting = await getSetting();
     const urlPattern: string[] = [];
-    plugins.forEach(p => urlPattern.push(...p.urlPattern));
+    setting.enabledPlugins.forEach(p => urlPattern.push(...REGISTED_PLUGINS[p].urlPattern));
     browser.contextMenus.create({
         id: CONTEXT_MENU_ID_PAGE,
         title: "将当前页面地址加入存档队列",

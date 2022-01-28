@@ -1,6 +1,7 @@
 const path = require('path');
 const CopyPlugin = require("copy-webpack-plugin");
 const { VueLoaderPlugin } = require('vue-loader');
+const webpack = require("webpack")
 
 module.exports = env => ({
   mode: env.mode,
@@ -46,6 +47,10 @@ module.exports = env => ({
         },
       ]
     }),
-    new VueLoaderPlugin()
+    new VueLoaderPlugin(),
+    new webpack.DefinePlugin({
+      __VUE_PROD_DEVTOOLS__: false,
+      __VUE_OPTIONS_API__: true
+    })
   ],
 });

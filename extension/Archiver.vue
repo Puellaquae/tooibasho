@@ -42,7 +42,7 @@ import {
 import { ArchiveItem } from "../src/index";
 import { ZipArchiver } from "../src/archiver/zip";
 import { pathJoin } from "../src/utils";
-import { tooibasho } from "./global";
+import { TooiBasho } from "./global";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -106,7 +106,7 @@ export default defineComponent({
       this.inputUrl = "";
     },
     async addUrl(url: string) {
-      const gen = tooibasho.detect(url);
+      const gen = TooiBasho.detect(url);
       const message = this.message.loading(`解析 ${url} 中`, { duration: 0 });
       let count = 0;
       for await (const item of gen) {
@@ -189,7 +189,7 @@ export default defineComponent({
           return false;
         })
         .map((k) => this.items.get(k)!.item);
-      const gen = tooibasho.archive(downItems, zipper);
+      const gen = TooiBasho.archive(downItems, zipper);
       for await (const i of gen) {
         const key = pathJoin(
           ...i.item.catalogPath.map((p) => p.id.toString()),
