@@ -1,6 +1,6 @@
 import axios from "axios";
 import { Archiver, ArchiveItem, Plugin } from "..";
-import { pathJoin } from "../utils";
+import { join as pathJoin, extname, basename } from "path-browserify";
 
 const FROM_SPACE = /https?:\/\/space\.bilibili\.com\/(\d+)\/article/;
 const SPACE_URL_PATTERN = "*://space.bilibili.com/*/article";
@@ -67,12 +67,12 @@ const BilibiliZhuanlan: Plugin = {
                         responseType: "arraybuffer"
                     });
                     archiver.append(res.data, {
-                        name: 'images/' + url.substring(url.length - 44),
+                        name: pathJoin('images', basename(url)),
                         paths
                     });
                     if (url === bannerImageUrl) {
                         archiver.append(res.data, {
-                            name: "cover." + url.substring(url.length - 3),
+                            name: "cover" + extname(url),
                             paths
                         })
                     }
@@ -302,6 +302,7 @@ function article2html(articleData: ArticleData): string {
         .replaceAll(/<figure.*?codecontent="(.*?)".*?figure>/gs, (_match, p1) => {
             return `<pre>${p1.replaceAll("&amp;", "&")}</pre>`
         })
+    const coverImgExt = extname(articleData.readInfo.banner_url);
     const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -431,7 +432,7 @@ function article2html(articleData: ArticleData): string {
         }
     </style>
 </head>
-<body><h1>${articleData.readInfo.title}</h1>${articleData.readInfo.banner_url ? '<img src="cover.jpg"/>' : ''}<div class="split"/>${body}</body></html>
+<body><h1>${articleData.readInfo.title}</h1>${articleData.readInfo.banner_url ? `<img src="cover${coverImgExt}"></img>` : ''}<div class="split"></div>${body}</body></html>
 `
     return html;
 }

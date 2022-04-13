@@ -5,14 +5,10 @@ function isArrayBuffer(value: unknown): boolean {
     return hasArrayBuffer && (value instanceof ArrayBuffer || toString.call(value) === '[object ArrayBuffer]');
 }
 
-function pathJoin(...paths: string[]): string {
-    return paths.join('/');
-}
-
 async function* combineAsyncGenerator<T>(...gens: AsyncGenerator<T, void, void>[]): AsyncGenerator<T, void, void> {
     const asyncIterators = gens;
     let count = asyncIterators.length;
-    const never: Promise<void> = new Promise(() => { return; });
+    const never: Promise<void> = new Promise(() => { /* do nothing */ });
     async function getNext(asyncIterator: AsyncGenerator<T, void, void>, index: number) {
         const result = await asyncIterator.next();
         return ({
@@ -42,4 +38,4 @@ async function* combineAsyncGenerator<T>(...gens: AsyncGenerator<T, void, void>[
     }
 }
 
-export { isArrayBuffer, pathJoin, combineAsyncGenerator }
+export { isArrayBuffer, combineAsyncGenerator }

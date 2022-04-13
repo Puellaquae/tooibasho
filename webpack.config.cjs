@@ -5,7 +5,7 @@ const webpack = require("webpack")
 
 module.exports = env => ({
   mode: env.mode,
-  devtool: 'cheap-module-source-map',
+  devtool: 'inline-cheap-module-source-map',
   resolve: {
     extensions: ['.js', '.ts', '.json'],
   },

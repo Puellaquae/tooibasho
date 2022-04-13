@@ -1,4 +1,5 @@
-import { combineAsyncGenerator, pathJoin } from "./utils";
+import { combineAsyncGenerator } from "./utils";
+import { join as pathJoin } from "path-browserify";
 const { hasOwnProperty } = Object.prototype;
 
 interface Archiver {
@@ -21,7 +22,7 @@ interface ArchiveItem {
     catalogPath: { id: number | string, name: string }[],
     name: string,
     from: Plugin,
-    auxData: object | null
+    auxData?: object
 }
 
 interface ContentTable {
@@ -38,10 +39,11 @@ async function* detect(url: string, plugins: Plugin[]): AsyncGenerator<ArchiveIt
     yield* combineAsyncGenerator(...gens);
 }
 
-async function* archive(items: ArchiveItem[], archiver: Archiver) {
+async function* archive(items: ArchiveItem[], archiver: Archiver, beforeArchive?: (index: number, item: ArchiveItem) => void) {
     const menu: ContentTable = { dirs: {}, items: [] };
-    for (const item of items) {
+    for (const [index, item] of items.entries()) {
         try {
+            beforeArchive && beforeArchive(index, item);
             const { entryfile } = await item.from.archive(item, archiver);
             let curmenu = menu;
             for (const path of item.catalogPath) {

@@ -41,24 +41,30 @@ import {
 
 import { ArchiveItem } from "../src/index";
 import { ZipArchiver } from "../src/archiver/zip";
-import { pathJoin } from "../src/utils";
 import { TooiBasho } from "./global";
+import { join as pathJoin } from "path-browserify";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getKey(item: ArchiveItem): string {
+  return pathJoin("", ...item.catalogPath.map((c) => c.id.toString()), item.name);
 }
 
 const zipper = new ZipArchiver();
 
 // 添加后默认为 ready，skip 和 ready 可通过选择框转换，存档后变为 fin 或 err
 // fin 会锁定住那一项阻止状态变换，err 会在再次存档变为 ready 或由选择框变为 skip
-type ItemStatus = "skip" | "ready" | "fin" | "err";
+// loading 在 archive 中触发
+type ItemStatus = "skip" | "ready" | "fin" | "err" | "loading";
 
 const itemStatusInfo: { [K in ItemStatus]: string } = {
   skip: "不存档",
   ready: "待存档",
   fin: "待导出",
   err: "存档失败",
+  loading: "存档中",
 };
 
 interface TreeData {
@@ -121,21 +127,21 @@ export default defineComponent({
     },
     newItem(item: ArchiveItem) {
       let curtree = this.data;
-      let pathJoin = "";
+      let paths = "";
       for (const path of item.catalogPath) {
-        pathJoin += path.id + "/";
+        paths = pathJoin(paths, path.id.toString());
         let nexttree = curtree.find((t) => t.pathId === path.id);
         if (!nexttree) {
           nexttree = {
             label: path.name,
             pathId: path.id,
             children: [],
-            key: pathJoin,
+            key: paths,
             isLeaf: false,
             suffix: () => {
               let status: Map<ItemStatus, number> = new Map();
               this.items.forEach((v) => {
-                if (v.key.startsWith(pathJoin)) {
+                if (v.key.startsWith(paths)) {
                   if (!status.has(v.status)) {
                     status.set(v.status, 1);
                   } else {
@@ -160,7 +166,7 @@ export default defineComponent({
         }
         curtree = nexttree.children = nexttree.children ?? [];
       }
-      const key = pathJoin + item.name;
+      const key = pathJoin(paths, item.name);
       if (!curtree.some((i) => i.key === key)) {
         const leaf = {
           label: item.title,
@@ -189,17 +195,18 @@ export default defineComponent({
           return false;
         })
         .map((k) => this.items.get(k)!.item);
-      const gen = TooiBasho.archive(downItems, zipper);
+      const gen = TooiBasho.archive(downItems, zipper, (_index, item) => {
+        this.items.get(getKey(item))!.status = "loading";
+      });
       for await (const i of gen) {
-        const key = pathJoin(
-          ...i.item.catalogPath.map((p) => p.id.toString()),
-          i.item.name
-        );
+        const key = getKey(i.item);
+        const item = this.items.get(key);
         if (i.success) {
-          this.items.get(key)!.status = "fin";
-          this.items.get(key)!.leaf.disabled = true;
+          item!.status = "fin";
+          item!.leaf.disabled = true;
         } else {
-          this.items.get(key)!.status = "err";
+          console.log(item);
+          item!.status = "err";
         }
       }
       this.inArchiving = false;
@@ -227,7 +234,7 @@ export default defineComponent({
           }
         });
       } else {
-        this.message.info("存档或导出中无法更改")
+        this.message.info("存档或导出中无法更改");
       }
     },
   },

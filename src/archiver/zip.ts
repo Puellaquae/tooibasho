@@ -1,7 +1,8 @@
 import JSZip from "jszip";
 import { Archiver } from "..";
 import { saveAs } from "file-saver";
-import { isArrayBuffer, pathJoin } from "../utils";
+import { isArrayBuffer } from "../utils";
+import { join as pathJoin } from "path-browserify";
 
 class ZipArchiver implements Archiver {
     jszip: JSZip
