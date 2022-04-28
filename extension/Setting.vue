@@ -50,7 +50,7 @@
       </n-button>
     </n-space>
   </div>
-  <pre :style="{ fontFamily: 'Cascadia Code' }"
+  <pre style="font-family: 'Cascadia Code', monospace"
     >{{ JSON.stringify(setting, null, 2) }}
   </pre>
 </template>

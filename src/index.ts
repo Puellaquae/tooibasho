@@ -22,7 +22,7 @@ interface ArchiveItem {
     catalogPath: { id: number | string, name: string }[],
     name: string,
     from: Plugin,
-    auxData?: object
+    auxData?: unknown
 }
 
 interface ContentTable {

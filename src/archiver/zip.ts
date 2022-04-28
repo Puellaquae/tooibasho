@@ -19,7 +19,9 @@ class ZipArchiver implements Archiver {
     }
 
     async package() {
-        const blob = await this.jszip.generateAsync({ type: "blob" })
+        const blob = await this.jszip.generateAsync({ type: "blob" }, () => {
+            /// TODO: Add package process
+        })
         saveAs(blob, "archive.zip");
     }
 }

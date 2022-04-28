@@ -437,4 +437,5 @@ function article2html(articleData: ArticleData): string {
     return html;
 }
 
+export { BilibiliZhuanlan }
 export default BilibiliZhuanlan;

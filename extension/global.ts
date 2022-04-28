@@ -1,10 +1,12 @@
 import { archive, ArchiveItem, detect } from "../src/index";
-import BilibiliZhuanlan from "../src/bilibili/zhuanlan";
+import { BilibiliZhuanlan } from "../src/bilibili/zhuanlan";
+import { NijiyonFirst } from "../src/nijiyon/first";
 import { Setting, SettingInf } from "./types";
 import Browser from "webextension-polyfill";
 
 const REGISTED_PLUGINS = {
     "BilibiliZhuanlan": BilibiliZhuanlan,
+    "NijiyonFirst": NijiyonFirst
 } as const
 
 type RegistedPlugins = keyof (typeof REGISTED_PLUGINS);
@@ -16,7 +18,7 @@ const STORAGE_KEY_SETTING = "setting";
 const DEFAULT_SETTING = {
     afterPackaged: "remove" as ("remove" | "reready"),
     allowPackageEmpty: false as boolean,
-    enabledPlugins: ["BilibiliZhuanlan"] as RegistedPlugins[],
+    enabledPlugins: ["BilibiliZhuanlan", "NijiyonFirst"] as RegistedPlugins[],
     packageName: "Archive" as string
 };
 
@@ -40,11 +42,7 @@ const SETTING_FORM: SettingInf<Setting> = {
     enabledPlugins: {
         label: "选择启用的插件",
         type: "select",
-        selections: {
-            BilibiliZhuanlan: {
-                label: BilibiliZhuanlan.label
-            }
-        }
+        selections: REGISTED_PLUGINS
     },
     packageName: {
         label: "导出文件文件名",
