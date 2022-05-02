@@ -11,7 +11,8 @@ module.exports = env => ({
   },
   entry: {
     service: path.resolve(__dirname, 'extension', 'service.ts'),
-    app: path.resolve(__dirname, 'extension', 'main.ts')
+    app: path.resolve(__dirname, 'extension', 'main.ts'),
+    sandbox: path.resolve(__dirname, 'extension', 'sandbox.ts')
   },
   output: {
     filename: '[name].js',

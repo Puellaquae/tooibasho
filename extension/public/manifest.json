@@ -1,18 +1,23 @@
 {
     "name": "TooiBasho",
-    "description": "B站专栏存档工具",
-    "version": "0.3.1",
-    "manifest_version": 3,
+    "description": "网页存档工具",
+    "version": "0.3.2",
+    "manifest_version": 2,
     "options_page": "app.html",
     "permissions": [
         "contextMenus",
-        "storage"
-    ],
-    "host_permissions": [
+        "storage",
+        "webRequest",
+        "webRequestBlocking",
         "<all_urls>"
     ],
     "background": {
         "service_worker": "service.js",
         "type": "module"
+    },
+    "sandbox": {
+        "pages": [
+            "sandbox.html"
+        ]
     }
 }

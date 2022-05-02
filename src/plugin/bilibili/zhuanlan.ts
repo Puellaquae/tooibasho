@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Archiver, ArchiveItem, Plugin } from "..";
+import { Archiver, ArchiveItem, Plugin } from "../..";
 import { join as pathJoin, extname, basename } from "path-browserify";
 
 const FROM_SPACE = /https?:\/\/space\.bilibili\.com\/(\d+)\/article/;

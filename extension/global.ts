@@ -1,12 +1,14 @@
 import { archive, ArchiveItem, detect } from "../src/index";
-import { BilibiliZhuanlan } from "../src/bilibili/zhuanlan";
-import { NijiyonFirst } from "../src/nijiyon/first";
+import { BilibiliZhuanlan } from "../src/plugin/bilibili/zhuanlan";
+import { NijiyonFirst } from "../src/plugin/nijiyon/first";
+import { MHGuiManga } from "../src/plugin/mhgui/manga";
 import { Setting, SettingInf } from "./types";
-import Browser from "webextension-polyfill";
+import browser from "webextension-polyfill";
 
 const REGISTED_PLUGINS = {
     "BilibiliZhuanlan": BilibiliZhuanlan,
-    "NijiyonFirst": NijiyonFirst
+    "NijiyonFirst": NijiyonFirst,
+    "MHGuiManga": MHGuiManga
 } as const
 
 type RegistedPlugins = keyof (typeof REGISTED_PLUGINS);
@@ -18,7 +20,7 @@ const STORAGE_KEY_SETTING = "setting";
 const DEFAULT_SETTING = {
     afterPackaged: "remove" as ("remove" | "reready"),
     allowPackageEmpty: false as boolean,
-    enabledPlugins: ["BilibiliZhuanlan", "NijiyonFirst"] as RegistedPlugins[],
+    enabledPlugins: ["BilibiliZhuanlan"] as RegistedPlugins[],
     packageName: "Archive" as string
 };
 
@@ -54,7 +56,7 @@ let setting: Setting | null = null;
 
 async function getSetting(): Promise<Setting> {
     if (setting === null) {
-        setting = (await Browser.storage.local.get(STORAGE_KEY_SETTING))[STORAGE_KEY_SETTING];
+        setting = (await browser.storage.local.get(STORAGE_KEY_SETTING))[STORAGE_KEY_SETTING];
         if (!setting) {
             setSetting(DEFAULT_SETTING);
         }
@@ -65,8 +67,11 @@ async function getSetting(): Promise<Setting> {
 }
 
 async function setSetting(newSetting: Setting): Promise<void> {
-    await Browser.storage.local.set({ [STORAGE_KEY_SETTING]: newSetting });
+    await browser.storage.local.set({ [STORAGE_KEY_SETTING]: newSetting });
     setting = newSetting;
+    const urlPattern = setting.enabledPlugins.flatMap(p => REGISTED_PLUGINS[p].urlPattern);
+    await browser.contextMenus.removeAll()
+    createContextMenu(urlPattern);
     return;
 }
 
@@ -75,10 +80,29 @@ async function initSetting() {
         const setting = await getSetting()
         if (!setting) {
             await setSetting(DEFAULT_SETTING);
+        } else {
+            const urlPattern = setting.enabledPlugins.flatMap(p => REGISTED_PLUGINS[p].urlPattern);
+            await browser.contextMenus.removeAll()
+            createContextMenu(urlPattern);
         }
     } catch (e) {
         await setSetting(DEFAULT_SETTING);
     }
+}
+
+function createContextMenu(urlPattern: string[]) {
+    browser.contextMenus.create({
+        id: CONTEXT_MENU_ID_PAGE,
+        title: "将当前页面地址加入存档队列",
+        contexts: ["page"],
+        documentUrlPatterns: urlPattern
+    });
+    browser.contextMenus.create({
+        id: CONTEXT_MENU_ID_LINK,
+        title: "将链接地址加入存档队列",
+        contexts: ["link"],
+        targetUrlPatterns: urlPattern
+    });
 }
 
 const TooiBasho = {
@@ -99,4 +123,5 @@ export {
     initSetting,
     getSetting,
     setSetting,
+    createContextMenu
 };

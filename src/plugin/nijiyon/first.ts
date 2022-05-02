@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ArchiveItem, Archiver, Plugin } from "..";
+import { ArchiveItem, Archiver, Plugin } from "../..";
 import { join, basename } from "path-browserify";
 
 type AuxData = {
@@ -153,8 +153,8 @@ async function resolveArticle(data: AuxData): Promise<{ mange: string; members: 
 function buildHtml(item: ArchiveItem, stories: { mange: string; members: string[]; }[]) {
     const data = item.auxData as AuxData;
     const stroiesHtml = stories.map(s => {
-        const members = s.members.map(m => `<img src="img\\${basename(m)}"></img>`).join("")
-        return `<img src="img\\${basename(s.mange)}"></img><div class="members">${members}</div>`;
+        const members = s.members.map(m => `<img src="img/${basename(m)}"></img>`).join("")
+        return `<img src="img/${basename(s.mange)}"></img><div class="members">${members}</div>`;
     }).join("");
     return `
 <!DOCTYPE html>
@@ -174,6 +174,7 @@ function buildHtml(item: ArchiveItem, stories: { mange: string; members: string[
         }
         .members {
             display: flex;
+            flex-wrap: wrap;
         }
     </style>
 </head>

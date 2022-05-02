@@ -1,10 +1,13 @@
 import { DEFAULT_SETTING } from "./global";
 
 type Message = {
-    message: 'awake'
+    message: "awake"
 } | {
-    message: 'url',
+    message: "url",
     url: string
+} | {
+    message: "codeRun",
+    code: string
 }
 
 type Setting = typeof DEFAULT_SETTING;

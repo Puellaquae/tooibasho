@@ -38,4 +38,10 @@ async function* combineAsyncGenerator<T>(...gens: AsyncGenerator<T, void, void>[
     }
 }
 
-export { isArrayBuffer, combineAsyncGenerator }
+let codeRunner: ((code: string) => unknown) | null | undefined = null;
+
+function setCodeRunner(runner: ((code: string) => unknown)) {
+    codeRunner = runner;
+}
+
+export { isArrayBuffer, combineAsyncGenerator, codeRunner, setCodeRunner }

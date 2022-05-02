@@ -14,3 +14,12 @@ browser.runtime.onMessage.addListener(async (message: Message) => {
         return {};
     }
 });
+
+browser.webRequest.onBeforeSendHeaders.addListener(
+    function (details) {
+        details.requestHeaders?.push({ name: "Referer", value: "https://www.mhgui.com/" });
+        return { requestHeaders: details.requestHeaders };
+    },
+    { urls: ["*://*.hamreus.com/*"] },
+    ["requestHeaders", "blocking", "extraHeaders"]
+);
